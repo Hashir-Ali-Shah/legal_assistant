@@ -23,11 +23,6 @@ export default function DashboardSection({ onNavigate }) {
             value: 0,
             icon: <FileText className="w-6 h-6" />,
         },
-        {
-            label: 'Questions Asked',
-            value: history.reduce((acc, chat) => acc + (chat.messageCount || 0), 0),
-            icon: <History className="w-6 h-6" />,
-        },
     ];
 
     return (
@@ -42,7 +37,7 @@ export default function DashboardSection({ onNavigate }) {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {stats.map((stat) => (
                     <Card key={stat.label}>
                         <div className="flex items-center gap-4">
