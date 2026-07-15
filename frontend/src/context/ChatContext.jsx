@@ -183,6 +183,44 @@ export function ChatProvider({ children }) {
         return null;
     };
 
+    const parseHistoricalMessage = (msg) => {
+        let content = msg.content || '';
+        let clarificationQuestions = msg.clarificationQuestions || null;
+        let clarificationSubmitted = msg.clarificationSubmitted || false;
+
+        const regex1 = /\[__CLARIFICATION_FORM__\]([\s\S]*?)\[__END_FORM__\]/;
+        const regex2 = /\[CLARIFICATION_FORM\]([\s\S]*?)\[END_FORM\]/;
+        
+        const match = content.match(regex1) || content.match(regex2);
+        if (match && match[1]) {
+            try {
+                if (!clarificationQuestions) {
+                    clarificationQuestions = JSON.parse(match[1]);
+                }
+                content = content.replace(/\[__CLARIFICATION_FORM__\][\s\S]*?\[__END_FORM__\]/g, '')
+                               .replace(/\[CLARIFICATION_FORM\][\s\S]*?\[END_FORM\]/g, '');
+            } catch (e) {
+                console.error('Failed to parse historical clarification form:', e);
+            }
+        }
+
+        // Clean up any stray retrieving/processing tags that might be in history
+        content = content.replace(/\[__RETRIEVING__\]/g, '')
+                         .replace(/\[RETRIEVING\]/g, '')
+                         .replace(/\[__PROCESSING__\]/g, '')
+                         .replace(/\[PROCESSING\]/g, '');
+
+        return {
+            ...msg,
+            id: msg.id,
+            role: msg.role,
+            content: content,
+            timestamp: msg.timestamp,
+            clarificationQuestions,
+            clarificationSubmitted
+        };
+    };
+
     /**
      * Load a chat session
      * For authenticated users: loads from backend
@@ -194,13 +232,21 @@ export function ChatProvider({ children }) {
                 console.log('[ChatContext] Loading session from backend:', sessionId);
                 const session = await sessionsAPI.getSession(sessionId);
                 setCurrentSessionId(session.id);
-                // Convert backend messages to frontend format
-                const formattedMessages = (session.messages || []).map(msg => ({
-                    id: msg.id,
-                    role: msg.role,
-                    content: msg.content,
-                    timestamp: msg.timestamp,
-                }));
+                // Convert backend messages to frontend format and strip raw tags
+                let formattedMessages = (session.messages || []).map(parseHistoricalMessage);
+                
+                // Second pass: check if clarification forms were actually answered
+                for (let i = 0; i < formattedMessages.length; i++) {
+                    if (formattedMessages[i].clarificationQuestions) {
+                        const nextMsg = formattedMessages[i + 1];
+                        if (nextMsg && nextMsg.role === 'user' && nextMsg.content.includes('[User Clarification Answers]')) {
+                            formattedMessages[i].clarificationSubmitted = true;
+                        } else {
+                            formattedMessages[i].clarificationSubmitted = false;
+                        }
+                    }
+                }
+                
                 setMessages(formattedMessages);
                 console.log('[ChatContext] Loaded messages:', formattedMessages.length);
             } catch (err) {
@@ -213,7 +259,21 @@ export function ChatProvider({ children }) {
             const session = history.find(s => s.id === sessionId);
             if (session) {
                 setCurrentSessionId(session.id);
-                setMessages(session.messages || []);
+                let formattedMessages = (session.messages || []).map(parseHistoricalMessage);
+                
+                // Second pass: check if clarification forms were actually answered
+                for (let i = 0; i < formattedMessages.length; i++) {
+                    if (formattedMessages[i].clarificationQuestions) {
+                        const nextMsg = formattedMessages[i + 1];
+                        if (nextMsg && nextMsg.role === 'user' && nextMsg.content.includes('[User Clarification Answers]')) {
+                            formattedMessages[i].clarificationSubmitted = true;
+                        } else {
+                            formattedMessages[i].clarificationSubmitted = false;
+                        }
+                    }
+                }
+                
+                setMessages(formattedMessages);
             }
         }
     };

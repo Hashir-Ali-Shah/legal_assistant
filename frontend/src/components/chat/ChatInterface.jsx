@@ -76,23 +76,27 @@ export default function ChatInterface() {
                     let clarificationQuestions = null;
                     let documentDraft = null;
                     
-                    if (displayContent.includes('[__RETRIEVING__]')) {
+                    if (displayContent.includes('[__RETRIEVING__]') || displayContent.includes('[RETRIEVING]')) {
                         agentStatus = 'retrieving';
-                        displayContent = displayContent.replace(/\[__RETRIEVING__\]/g, '');
+                        displayContent = displayContent.replace(/\[__RETRIEVING__\]/g, '').replace(/\[RETRIEVING\]/g, '');
                     }
-                    if (displayContent.includes('[__PROCESSING__]')) {
+                    if (displayContent.includes('[__PROCESSING__]') || displayContent.includes('[PROCESSING]')) {
                         agentStatus = 'processing';
-                        displayContent = displayContent.replace(/\[__PROCESSING__\]/g, '');
+                        displayContent = displayContent.replace(/\[__PROCESSING__\]/g, '').replace(/\[PROCESSING\]/g, '');
                     }
-                    if (displayContent.includes('[__CLARIFICATION_FORM__]')) {
-                        const match = displayContent.match(/\[__CLARIFICATION_FORM__\](.*?)\[__END_FORM__\]/);
-                        if (match) {
+                    if (displayContent.includes('[__CLARIFICATION_FORM__]') || displayContent.includes('[CLARIFICATION_FORM]')) {
+                        const regex1 = /\[__CLARIFICATION_FORM__\]([\s\S]*?)\[__END_FORM__\]/;
+                        const regex2 = /\[CLARIFICATION_FORM\]([\s\S]*?)\[END_FORM\]/;
+                        
+                        const match = displayContent.match(regex1) || displayContent.match(regex2);
+                        if (match && match[1]) {
                             try {
                                 clarificationQuestions = JSON.parse(match[1]);
                             } catch(e) {
                                 console.error("Failed to parse clarification JSON", e);
                             }
-                            displayContent = displayContent.replace(/\[__CLARIFICATION_FORM__\].*?\[__END_FORM__\]/, '');
+                            displayContent = displayContent.replace(/\[__CLARIFICATION_FORM__\][\s\S]*?\[__END_FORM__\]/g, '')
+                                                           .replace(/\[CLARIFICATION_FORM\][\s\S]*?\[END_FORM\]/g, '');
                         }
                     }
                     if (displayContent.includes('[__DOCUMENT_DRAFT__]')) {

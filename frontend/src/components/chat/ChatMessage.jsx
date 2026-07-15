@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 
 export default function ChatMessage({ message, onSendMessage }) {
     const [copied, setCopied] = useState(false);
-    const [formSubmitted, setFormSubmitted] = useState(false);
+    const [formSubmitted, setFormSubmitted] = useState(message.clarificationSubmitted || false);
     const isUser = message.role === 'user';
 
     const handleCopy = async () => {
@@ -105,32 +105,43 @@ export default function ChatMessage({ message, onSendMessage }) {
                     {message.clarificationQuestions && !isUser && (
                         <div className="mt-4 border-t pt-4">
                             <h4 className="font-semibold text-sm mb-3 text-black">Please provide more details:</h4>
-                            <form onSubmit={handleClarificationSubmit}>
-                                {message.clarificationQuestions.map((q, idx) => (
-                                    <div key={idx} className="mb-3">
-                                        <label className="text-xs font-medium text-gray-700">{q}</label>
-                                        <input 
-                                            type="text" 
-                                            name={`q_${idx}`}
-                                            className="w-full mt-1 p-2 border border-gray-300 rounded-md text-sm text-black focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                                            placeholder="Your answer..."
-                                            required
-                                            disabled={formSubmitted}
-                                        />
+                            {formSubmitted ? (
+                                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                    <ul className="space-y-1 mb-2">
+                                        {message.clarificationQuestions.map((q, idx) => (
+                                            <li key={idx} className="text-xs text-gray-600 flex gap-2">
+                                                <span className="text-gray-400">•</span> 
+                                                <span>{q}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <div className="flex items-center gap-1.5 mt-3 text-xs font-medium text-emerald-600">
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>Questions answered</span>
                                     </div>
-                                ))}
-                                <button 
-                                    type="submit" 
-                                    disabled={formSubmitted}
-                                    className={`mt-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                                        formSubmitted 
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                            : 'bg-black text-white hover:bg-gray-800'
-                                    }`}
-                                >
-                                    {formSubmitted ? 'Submitted' : 'Submit Answers'}
-                                </button>
-                            </form>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleClarificationSubmit}>
+                                    {message.clarificationQuestions.map((q, idx) => (
+                                        <div key={idx} className="mb-3">
+                                            <label className="text-xs font-medium text-gray-700">{q}</label>
+                                            <input 
+                                                type="text" 
+                                                name={`q_${idx}`}
+                                                className="w-full mt-1 p-2 border border-gray-300 rounded-md text-sm text-black focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                                                placeholder="Your answer..."
+                                                required
+                                            />
+                                        </div>
+                                    ))}
+                                    <button 
+                                        type="submit" 
+                                        className="mt-2 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-black text-white hover:bg-gray-800"
+                                    >
+                                        Submit Answers
+                                    </button>
+                                </form>
+                            )}
                         </div>
                     )}
                     
